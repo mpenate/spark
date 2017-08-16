@@ -16,17 +16,22 @@
 */
 package org.apache.spark.security
 
+import java.io._
 import java.io.{ByteArrayInputStream, File, FileOutputStream}
 import java.nio.file.{Files, Paths}
 import java.nio.file.attribute.PosixFilePermissions
 import java.security._
 import java.security.cert.CertificateFactory
+import java.security.KeyFactory
+import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.RSAPrivateCrtKeySpec
 import javax.xml.bind.DatatypeConverter
 
+import org.apache.commons.ssl.PKCS8Key
 import sun.security.util.DerInputStream
 
 import org.apache.spark.internal.Logging
+
 
 object SSLConfig extends Logging {
 
@@ -195,5 +200,41 @@ object SSLConfig extends Logging {
     pattern.map(value => {
       DatatypeConverter.parseBase64Binary(value)
     })
+  }
+
+  object SSLUtils {
+
+    def pemToDer(data: String, privateKey: Boolean): Any = {
+
+      val (begin, end) = if (privateKey) {
+        ("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----")
+      } else {
+        ("-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----")
+      }
+
+
+      val tokens = data.split(begin)(1).split(end)
+
+
+      val keyByted = DatatypeConverter.parseBase64Binary(tokens(0))
+
+      if (privateKey) {
+        val file = new File("/tmp/priv.key")
+        val pkcs8 = new PKCS8Key(new FileInputStream(file), null)
+
+        val decrypted = pkcs8.getDecryptedBytes
+        val spec = new PKCS8EncodedKeySpec(decrypted)
+        val pk = KeyFactory.getInstance("RSA").generatePrivate(spec)
+        val bos = new BufferedOutputStream(new FileOutputStream("/tmp/mykey.key.pray"))
+        bos.write(pk.getEncoded)
+        bos.close()
+
+      } else {
+        val cert = new ByteArrayInputStream(keyByted)
+        CertificateFactory.getInstance("X.509").generateCertificate(cert)
+
+      }
+
+    }
   }
 }
