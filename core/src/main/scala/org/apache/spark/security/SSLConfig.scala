@@ -16,14 +16,17 @@
 */
 package org.apache.spark.security
 
-import java.io.{ByteArrayInputStream, File, FileOutputStream}
+import java.io._
 import java.nio.file.{Files, Paths}
 import java.nio.file.attribute.PosixFilePermissions
 import java.security._
+import java.security.KeyFactory
 import java.security.cert.CertificateFactory
+import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.RSAPrivateCrtKeySpec
 import javax.xml.bind.DatatypeConverter
 
+import org.apache.commons.ssl.PKCS8Key
 import sun.security.util.DerInputStream
 
 import org.apache.spark.internal.Logging
@@ -63,6 +66,11 @@ object SSLConfig extends Logging {
       val (key, certs) =
         VaultHelper.getCertKeyForAppFromVault(vaultHost, vaultKeystorePath.get, vaultToken)
 
+      val keyPkcs8 = pemToDer(key)
+
+      generatePemFile(certs, "cert.crt")
+      generatePemFile(trustStore, "ca.crt")
+
       val pass = VaultHelper.getCertPassForAppFromVault(
         vaultHost, vaultKeystorePassPath.get, vaultToken)
 
@@ -86,9 +94,9 @@ object SSLConfig extends Logging {
       -> VaultHelper.getCertPassForAppFromVault(vaultHost, vaultKeyPassPath.get, vaultToken))
 
     val certFilesPath =
-      Map(sparkSSLPrefix + "cert.path" -> s"${sys.env.get("SPARK_SSL_CERT_PATH")}/cert.crt",
-        sparkSSLPrefix + "key.pkcs8" -> s"${sys.env.get("SPARK_SSL_CERT_PATH")}/key.pkcs8",
-        sparkSSLPrefix + "root.cert" -> s"${sys.env.get("SPARK_SSL_CERT_PATH")}/caroot.crt")
+      Map(sparkSSLPrefix + "cert.path" -> "/tmp/cert.crt",
+        sparkSSLPrefix + "key.pkcs8" -> "/tmp/key.pkcs8",
+        sparkSSLPrefix + "root.cert" -> "/tmp/ca.crt")
 
     trustStoreOptions ++ keyStoreOptions ++ keyPass ++ certFilesPath
   }
@@ -115,6 +123,52 @@ object SSLConfig extends Logging {
     keystore.store(writeStream, password.toCharArray)
     writeStream.close
     file.getAbsolutePath
+  }
+
+  def generatePemFile(pem: String, fileName: String): Any = {
+    formatPem(pem)
+    val bosCA = new BufferedOutputStream(new FileOutputStream(s"/tmp/$fileName"))
+    bosCA.write(formatPem(pem).getBytes)
+    bosCA.close()
+  }
+
+  // Gets raw pem from vault (without \n and folding) and outputs a well-formatted pem
+
+  def formatPem(pemRaw: String): String = {
+
+    val (begin, end) = ("-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----")
+    val pem = pemRaw
+      .replace(begin, s"$begin\n")
+      .replace(end, s"\n$end")
+      .replace(s"$end$begin", s"$end\n$begin")
+
+    var result = ""
+    pem.split("\n").foreach( data => if (!data.contains(end) && !data.contains(begin)) {
+      var auxData = data
+      while (auxData.size != 0) {
+        val splitter = auxData.splitAt(64)
+        result+= s"${splitter._1}\n"
+        auxData = s"${splitter._2}"
+      }
+    } else {
+      result+=s"$data\n"
+    })
+
+    result
+  }
+
+  def pemToDer(data: String): Any = {
+
+    val (begin, end) = ("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----")
+    val tokens = data.split(begin)(1).split(end)
+    val keyByted = DatatypeConverter.parseBase64Binary(tokens(0))
+    val pkcs8 = new PKCS8Key(keyByted, null)
+    val decrypted = pkcs8.getDecryptedBytes
+    val spec = new PKCS8EncodedKeySpec(decrypted)
+    val pk = KeyFactory.getInstance("RSA").generatePrivate(spec)
+    val bos = new BufferedOutputStream(new FileOutputStream("/tmp/key.pkcs8"))
+    bos.write(pk.getEncoded)
+    bos.close()
   }
 
 
