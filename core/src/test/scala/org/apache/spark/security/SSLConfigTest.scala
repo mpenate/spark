@@ -1,5 +1,7 @@
 /*
- * Modified in 2017 by Stratio Big Data Inc., Sucursal en España. Modifications are ©  2017  Stratio Big Data Inc., Sucursal en España.
+ * Modified in 2017 by Stratio Big Data Inc.,
+ * Sucursal en España. Modifications are ©  2017
+ * Stratio Big Data Inc.,Sucursal en España.
  */
 
 package org.apache.spark.security
@@ -41,18 +43,18 @@ class SSLConfigTest extends SparkFunSuite with ShouldMatchers{
         .equals(calculateMD5("/tmp/cert.crt")))
   }
 
-  test("generate ca.crt from intermediate chain valid data") {
-    SSLConfig.generatePemFile( caString, "/ca.crt")
+  test("generate ca-two-levels.crt from intermediate chain valid data") {
+    SSLConfig.generatePemFile( caString, "/ca-two-levels.crt")
     assert (
-      calculateMD5(getClass.getResource("/ca.crt").getFile)
-        .equals(calculateMD5("/tmp/ca.crt")))
+      calculateMD5(getClass.getResource("/ca-two-levels.crt").getFile)
+        .equals(calculateMD5("/tmp/ca-two-levels.crt")))
   }
 
-  test("generate ca.crt from valid root ca") {
-    SSLConfig.generatePemFile( caRootString, "/ca.crt")
+  test("generate ca-two-levels.crt from valid root ca") {
+    SSLConfig.generatePemFile( caRootString, "/ca-one-level.crt")
     assert (
-      calculateMD5(getClass.getResource("/ca.crt").getFile)
-        .equals(calculateMD5("/tmp/ca.crt")))
+      calculateMD5(getClass.getResource("/ca-one-level.crt").getFile)
+        .equals(calculateMD5("/tmp/ca-one-level.crt")))
   }
 
 }
