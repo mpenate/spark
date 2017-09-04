@@ -34,7 +34,6 @@ import org.apache.spark.internal.Logging
 object SSLConfig extends Logging {
 
   val sslTypeDataStore = "DATASTORE"
-  val pemBegin = ""
 
   def prepareEnvironment(vaultHost: String,
                          vaultToken: String,
@@ -95,9 +94,9 @@ object SSLConfig extends Logging {
       -> VaultHelper.getCertPassForAppFromVault(vaultHost, vaultKeyPassPath.get, vaultToken))
 
     val certFilesPath =
-      Map(sparkSSLPrefix + "cert.path" -> "/tmp/cert.crt",
-        sparkSSLPrefix + "key.pkcs8" -> "/tmp/key.pkcs8",
-        sparkSSLPrefix + "root.cert" -> "/tmp/ca.crt")
+      Map(s"$sparkSSLPrefix${sslType.toLowerCase}.certPem.path" -> "/tmp/cert.crt",
+        s"$sparkSSLPrefix${sslType.toLowerCase}.keyPKCS8.path" -> "/tmp/key.pkcs8",
+        s"$sparkSSLPrefix${sslType.toLowerCase}.caPem.path" -> "/tmp/ca.crt")
 
     trustStoreOptions ++ keyStoreOptions ++ keyPass ++ certFilesPath
   }
@@ -138,7 +137,9 @@ object SSLConfig extends Logging {
   def formatPem(pemRaw: String): String = {
     val (begin, end) = extractFlagsFromCert(pemRaw)
     val pem = getArrayFromCert(pemRaw)
-    pem.map( data => s"$begin\n${data.sliding(64, 64).mkString("\n")}\n$end").mkString("\n").concat("\n")
+    pem.map( data => s"$begin\n${data.sliding(64, 64).mkString("\n")}\n$end")
+      .mkString("\n")
+      .concat("\n")
   }
 
   def pemToDer(data: String): Any = {
@@ -156,7 +157,6 @@ object SSLConfig extends Logging {
   }
 
 
-  // TODO Improvent get passwords keys and jks key
   def generateKeyStore(sslType: String,
                        cas: String,
                        firstCA: String,
