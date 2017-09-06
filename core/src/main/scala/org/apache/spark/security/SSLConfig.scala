@@ -66,8 +66,7 @@ object SSLConfig extends Logging {
       val (key, certs) =
         VaultHelper.getCertKeyForAppFromVault(vaultHost, vaultKeystorePath.get, vaultToken)
 
-      val keyPkcs8 = pemToDer(key)
-
+      pemToDer(key)
       generatePemFile(certs, "cert.crt")
       generatePemFile(trustStore, "ca.crt")
 
@@ -125,7 +124,7 @@ object SSLConfig extends Logging {
     file.getAbsolutePath
   }
 
-  def generatePemFile(pem: String, fileName: String): Any = {
+  def generatePemFile(pem: String, fileName: String): Unit = {
     formatPem(pem)
     val bosCA = new BufferedOutputStream(new FileOutputStream(s"/tmp/$fileName"))
     bosCA.write(formatPem(pem).getBytes)
@@ -142,7 +141,7 @@ object SSLConfig extends Logging {
       .concat("\n")
   }
 
-  def pemToDer(data: String): Any = {
+  def pemToDer(data: String): Unit = {
     val (begin, end) = ("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----")
     require(data.startsWith(begin), "BEGIN RSA PRIVATE KEY flag not found")
     val tokens = data.split(begin)(1).split(end)
