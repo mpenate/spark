@@ -11,6 +11,7 @@ RUN apt-get purge -y java-\* && \
     apt-get update && \
     curl -o /root/kms_utils-0.2.1.sh http://sodio.stratio.com/repository/paas/kms_utils/0.2.1/kms_utils-0.2.1.sh && \
     apt-get install -y openjdk-8-jdk jq && \
+    apt-get purge -y krb5-config && \
     mv /opt/spark/dist /opt/spark/bak && \
     mv /opt/sds/dist /opt/spark/dist && \
     chmod -R 777 /opt/spark/dist/ && \
