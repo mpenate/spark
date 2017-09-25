@@ -1,5 +1,5 @@
 
-package com.stratio.paas.dispatcherAT.specs;
+package com.stratio.paas.sparkAT.specs;
 
 import com.stratio.qa.utils.RemoteSSHConnection;
 import com.stratio.qa.utils.ThreadProperty;

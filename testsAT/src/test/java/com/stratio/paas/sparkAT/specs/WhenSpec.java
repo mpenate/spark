@@ -1,5 +1,5 @@
 
-package com.stratio.paas.dispatcherAT.specs;
+package com.stratio.paas.sparkAT.specs;
 
 import cucumber.api.java.en.When;
 

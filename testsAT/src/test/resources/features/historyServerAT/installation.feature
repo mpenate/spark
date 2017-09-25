@@ -8,7 +8,7 @@ Feature: Installing Spark Dispatcher
         And I authenticate to DCOS cluster '${DCOS_IP}' using email '${DCOS_USER}' with user '${REMOTE_USER:-operador}' and pem file 'src/test/resources/credentials/key.pem'
         And I open a ssh connection to '${DCOS_CLI_HOST:-dcos-cli.demo.labs.stratio.com}' with user '${CLI_USER:-root}' and password '${CLI_PASSWORD:-stratio}'
         And I securely send requests to '${DCOS_IP}:443'
-        When I send a 'POST' request to '/marathon/v2/apps' based on 'schemas/spark-dispatcher.json' as 'json' with:
-            | $.container.docker.image    | UPDATE   | qa.stratio.com/stratio/stratio-spark:${VERSION} | n/a    |
+        When I send a 'POST' request to '/marathon/v2/apps' based on 'schemas/spark-history.json' as 'json' with:
+            | $.container.docker.image    | UPDATE   | qa.stratio.com/stratio/spark-stratio-history-server:${VERSION} | n/a    |
         Then the service response status must be '201'
-        And in less than '300' seconds, checking each '20' seconds, the command output 'dcos task | grep -w spark-history | wc -l' contains '1'
+        And in less than '300' seconds, checking each '20' seconds, the command output 'dcos task | grep -w spark-hs | wc -l' contains '1'
